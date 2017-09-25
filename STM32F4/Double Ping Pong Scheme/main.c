@@ -2,71 +2,84 @@
 
 #define DAC_DHR12R2_ADDRESS    0x40007414
 #define DAC_DHR8R1_ADDRESS     0x40007410
-#define BLOCK_SIZE 1024
+#define BLOCK_SIZE 256
 #define ADC1_ADDRESS	((uint32_t)(&(ADC1->DR)))
+#define K 3
+#define Y Pong
+#define X Ping
 
-DAC_InitTypeDef  DAC_InitStructure;
+unsigned char SwitchFlag = 1;
+unsigned char mem = 0;
+uint16_t Ping[2][BLOCK_SIZE];
+uint16_t Pong[2][BLOCK_SIZE];
 
-const uint8_t Escalator8bit[6] = {0x0, 0x33, 0x66, 0x99, 0xCC, 0xFF};
-
-unsigned char SwitchFlag = 0;
-uint16_t Ping[2][BLOCK_SIZE+1];
-uint16_t Pong[2][BLOCK_SIZE+1];
-
-__IO uint8_t SelectedWavesForm = 0;
-__IO uint8_t KeyPressed = SET;
-
-void TIM6_Config(void);
-
-void DAC_Ch2_SineWaveConfig(void);
-void ADC1_CH6_DMA_Config(void);
+void TIM2_Config(void);
+void DAC_DMA_Config(void);
+void ADC_DMA_Config(void);
 
 int main(void){
 
-	GPIO_InitTypeDef GPIO_InitStructure;
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_GPIOD, ENABLE);
+	//Initialize struct
+	GPIO_InitTypeDef GPIO_InitDef;
 
-	/* DMA1 clock and GPIOA clock enable (to be used with DAC) */
-	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1 | RCC_AHB1Periph_GPIOA, ENABLE);
+	//Pins 13 and 14
+	GPIO_InitDef.GPIO_Pin = GPIO_Pin_13 | GPIO_Pin_14;
+	//Mode output
+	GPIO_InitDef.GPIO_Mode = GPIO_Mode_OUT;
+	//Output type push-pull
+	GPIO_InitDef.GPIO_OType = GPIO_OType_PP;
+	//Without pull resistors
+	GPIO_InitDef.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	//50MHz pin speed
+	GPIO_InitDef.GPIO_Speed = GPIO_Speed_50MHz;
 
-	/* DAC Periph clock enable */
-	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+	//Initialize pins on GPIOG port
+	GPIO_Init(GPIOD, &GPIO_InitDef);
 
-	/* DAC channel 1 & 2 (DAC_OUT1 = PA.4)(DAC_OUT2 = PA.5) configuration */
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_4 | GPIO_Pin_5;
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
-	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-	GPIO_Init(GPIOA, &GPIO_InitStructure);
+	TIM2_Config();
+	ADC_DMA_Config();
+	DAC_DMA_Config();
 
-	/* TIM6 Configuration ------------------------------------------------------*/
-	TIM6_Config();
-
-	//DAC_DeInit();
-	ADC1_CH6_DMA_Config();
-	DAC_Ch2_SineWaveConfig();
-
-	//__set_MSP(0x00);
-	for(;;);
+	for(;;){
+		GPIO_ToggleBits(GPIOD, GPIO_Pin_13 | GPIO_Pin_14);
+		for(uint_fast32_t wait = 0; wait < 65535<<4; wait++);
+	}
 }
 
-void TIM6_Config(void){
+void TIM2_Config(void){
 	TIM_TimeBaseInitTypeDef    TIM_TimeBaseStructure;
 	RCC_APB1PeriphClockCmd(RCC_APB1Periph_TIM2, ENABLE);
 
+	/* Timer configurado para muestrear a 44.1 KHz */
 	TIM_TimeBaseStructInit(&TIM_TimeBaseStructure);
-	TIM_TimeBaseStructure.TIM_Period = 4;
-	TIM_TimeBaseStructure.TIM_Prescaler = 76;
+	TIM_TimeBaseStructure.TIM_Period = 20;
+	TIM_TimeBaseStructure.TIM_Prescaler = 83;
 	TIM_TimeBaseStructure.TIM_ClockDivision = 0;
 	TIM_TimeBaseStructure.TIM_CounterMode = TIM_CounterMode_Up;
 	TIM_TimeBaseInit(TIM2, &TIM_TimeBaseStructure);
 	TIM_SelectOutputTrigger(TIM2, TIM_TRGOSource_Update);
 
+	/* Habilitamos el timer */
 	TIM_Cmd(TIM2, ENABLE);
 }
 
-void DAC_Ch2_SineWaveConfig(void){
+void DAC_DMA_Config(void){
 	DMA_InitTypeDef DMA_InitStructure;
+	GPIO_InitTypeDef GPIO_InitStructure;
+	DAC_InitTypeDef  DAC_InitStructure;
 
-	/* DAC channel2 Configuration */
+	/* Habilitamos los CLK de cada periférico  */
+	RCC_AHB1PeriphClockCmd(RCC_AHB1Periph_DMA1 | RCC_AHB1Periph_GPIOA, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_DAC, ENABLE);
+
+	/* Configuracion del pin de salida para el DAC */
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_5;
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AN;
+	GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
+	GPIO_Init(GPIOA, &GPIO_InitStructure);
+
+	/* Configuración del canal 2 del DAC */
 	DAC_InitStructure.DAC_Trigger = DAC_Trigger_T2_TRGO;
 	DAC_InitStructure.DAC_WaveGeneration = DAC_WaveGeneration_None;
 	DAC_InitStructure.DAC_OutputBuffer = DAC_OutputBuffer_Enable;
@@ -75,7 +88,7 @@ void DAC_Ch2_SineWaveConfig(void){
 	/* DMA1_Stream5 channel7 configuration **************************************/
 	DMA_InitStructure.DMA_Channel = DMA_Channel_7;
 	DMA_InitStructure.DMA_PeripheralBaseAddr = (uint32_t)DAC_DHR12R2_ADDRESS;
-	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&Ping[0][0];
+	DMA_InitStructure.DMA_Memory0BaseAddr = (uint32_t)&Pong[0][0];
 	DMA_InitStructure.DMA_DIR = DMA_DIR_MemoryToPeripheral;
 	DMA_InitStructure.DMA_BufferSize = BLOCK_SIZE;
 	DMA_InitStructure.DMA_PeripheralInc = DMA_PeripheralInc_Disable;
@@ -88,7 +101,7 @@ void DAC_Ch2_SineWaveConfig(void){
 	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
 	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
 	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-	DMA_DoubleBufferModeConfig(DMA1_Stream6,(uint32_t)&Ping[1][0],DMA_Memory_0);
+	DMA_DoubleBufferModeConfig(DMA1_Stream6,(uint32_t)&Pong[1][0],DMA_Memory_0);
 	DMA_DoubleBufferModeCmd(DMA1_Stream6,ENABLE);
 	DMA_Init(DMA1_Stream6, &DMA_InitStructure);
 
@@ -102,7 +115,7 @@ void DAC_Ch2_SineWaveConfig(void){
 	DAC_DMACmd(DAC_Channel_2, ENABLE);
 }
 
-void ADC1_CH6_DMA_Config(void){
+void ADC_DMA_Config(void){
 	ADC_InitTypeDef       ADC_InitStructure;
 	ADC_CommonInitTypeDef ADC_CommonInitStructure;
 	DMA_InitTypeDef       DMA_InitStructure;
@@ -134,7 +147,6 @@ void ADC1_CH6_DMA_Config(void){
 	DMA_InitStructure.DMA_FIFOThreshold = DMA_FIFOThreshold_HalfFull;
 	DMA_InitStructure.DMA_MemoryBurst = DMA_MemoryBurst_Single;
 	DMA_InitStructure.DMA_PeripheralBurst = DMA_PeripheralBurst_Single;
-
 	DMA_DoubleBufferModeConfig(DMA2_Stream0,(uint32_t)&Ping[1][0],DMA_Memory_1);
 	DMA_DoubleBufferModeCmd(DMA2_Stream0,ENABLE);
 	DMA_Init(DMA2_Stream0, &DMA_InitStructure);
@@ -179,7 +191,16 @@ void ADC1_CH6_DMA_Config(void){
 	NVIC_Init(&NVIC_InitStructure);
 }
 
-void DMA2_Stream0_IRQHandler(void){
 
+
+void DMA2_Stream0_IRQHandler(void){
 	DMA_ClearFlag(DMA2_Stream0, DMA_IT_TC);
+	mem^=1;
+	for(uint16_t n = 0; n < BLOCK_SIZE; n++){
+
+		//Y[mem][n] = K*X[mem][n];
+		//Y[mem][n] = (n < 6) ? X[mem^1][n-6+BLOCK_SIZE] : X[mem][n-6];
+		Y[mem][n] = 0.5*X[mem][n] + ((n < 4) ? 3*X[mem^1][n-4+BLOCK_SIZE]+2 : 3*X[mem][n-4]+2);
+	}
 }
+
