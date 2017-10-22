@@ -10,6 +10,11 @@ This projects is an application for the STM32F4 board...
 
 (to be continued....)
 
+Effects
+----------
+  >- Overdrive
+  >- Trémolo
+
 
 Schematics
 ----------
