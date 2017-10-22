@@ -6,4 +6,6 @@ Multi-effects processors are an efficient way for guitar players to keep their p
 
 Description
 ----------
+This projects is an application for the STM32F5 board...
 
+(to be continued....)
