@@ -9,3 +9,11 @@ Description
 This projects is an application for the STM32F5 board...
 
 (to be continued....)
+
+
+Schematics
+----------
+The schematics for the analog coupling and decoupling are availble to use. This were designed and simulated in LTSpice. An Free circuit simulation software from Linear Tecnologies.
+
+Link for LTSpice:
+http://www.linear.com/designtools/software/
