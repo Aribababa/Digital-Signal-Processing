@@ -31,3 +31,9 @@ The schematics for the analog coupling and decoupling are availble to use. This 
 
 Link for LTSpice:
 http://www.linear.com/designtools/software/
+
+
+
+
+Setting the IDE
+----------
