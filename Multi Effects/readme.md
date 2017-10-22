@@ -12,12 +12,17 @@ This projects is an application for the STM32F4 board...
 
 Effects
 ----------
-  >- Overdrive: an overdrive pedal seeks to replicate the sound of an overdriven tube amp. In the course of doing so, it often facilitates the real thing a little more quickly by pushing your amp into clipping a little earlier.
-  >- Trémolo.
+  >- Overdrive: An overdrive pedal seeks to replicate the sound of an overdriven tube amp. In the course of doing so, it often facilitates the real thing a little more quickly by pushing your amp into clipping a little earlier.
+  
+  >- Trémolo:  Is a trembling effect. This effect turns the volume of a signal up and down, creating a "shuddering" effect.
+  
   >- Delay.
+  
   >- Flanger.
-  >- Octaver.
-  >- Chorus.
+  
+  >- Octaver: Mix the input signal with a synthesised signal whose musical tone is an octave lower or higher than the original. The synthesised octave signal is derived from the original input signal by halving (octave-down) or doubling (octave-up) the frequency. 
+  
+  >- Chorus: Occurs when individual sounds with approximately the same timbre, and very similar pitch converge and are perceived as one. While similar sounds coming from multiple sources can occur naturally, as in the case of a choir or string orchestra,
 
 
 Schematics
