@@ -12,8 +12,12 @@ This projects is an application for the STM32F4 board...
 
 Effects
 ----------
-  >- Overdrive
-  >- Trémolo
+  >- Overdrive: an overdrive pedal seeks to replicate the sound of an overdriven tube amp. In the course of doing so, it often facilitates the real thing a little more quickly by pushing your amp into clipping a little earlier.
+  >- Trémolo.
+  >- Delay.
+  >- Flanger.
+  >- Octaver.
+  >- Chorus.
 
 
 Schematics
